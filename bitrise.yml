@@ -28,49 +28,11 @@ workflows:
           inputs:
             - content: |
                 #!/bin/bash
+                
+                echo "INSIDE bitrise.yml from local git"
                 echo "Project location: $PROJECT_LOCATION"
                 echo "APK output directory: $PROJECT_LOCATION/$MODULE/build/outputs/apk/$VARIANT/"
-      - avd-manager@1: {}
-      - wait-for-android-emulator@1: {}
-      - script:
-          title: Install Maestro and run e2e tests
-          inputs:
-            - content: |-
-                #!/bin/sh
-                
-                set -ex
-                
-                # Maestro version
-                if [[ -z "$maestro_cli_version" ]]; then
-                    echo "If you want to install a specific version of Maestro CLI, please set the environment variable maestro_cli_version to the version you want to install."
-                else
-                    echo "Installing Maestro CLI version $maestro_cli_version"
-                    export MAESTRO_VERSION=$maestro_cli_version;
-                fi
-                
-                # Install maestro CLI
-                echo "Installing Maestro CLI"
-                curl -Ls "https://get.maestro.mobile.dev" | bash
-                export PATH="$PATH":"$HOME/.maestro/bin"
-                echo "MAESTRO INSTALLED - Check Version"
-                maestro -v
-                
-                
-                $ANDROID_HOME/platform-tools/adb install "$BITRISE_APK_PATH"
-                
-                cd $PROJECT_LOCATION
-                
-                ls
-                
-                pwd
-                
-                
-                echo "Running tests with Maestro"
-                maestro test .maestro/dummy.yaml
-      - sign-apk@1:
-          run_if: '{{getenv "BITRISEIO_ANDROID_KEYSTORE_URL" | ne ""}}'
-      - cache-push@2: {}
-      - deploy-to-bitrise-io@2: {}
+
 meta:
   bitrise.io:
     stack: linux-docker-android-20.04
@@ -92,3 +54,9 @@ app:
     - opts:
         is_expand: false
       GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m -XX:+HeapDumpOnOutOfMemoryError"
+
+trigger_map:
+  - push_branch: main
+    workflow: Maestro-Test-Android
+  - push_branch: '*'
+    workflow: Maestro-Test-Android
