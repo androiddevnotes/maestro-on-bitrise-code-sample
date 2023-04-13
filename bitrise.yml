@@ -1,0 +1,60 @@
+format_version: "11"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: android
+workflows:
+  Maestro-Test-Android:
+    description: |
+      Deploys app using [Deploy to bitrise.io Step](https://devcenter.bitrise.io/en/getting-started/getting-started-with-android-apps.html#deploying-an-android-app-to-bitrise-io-53056).
+
+      Next steps:
+      - Check out [Getting started with Android apps](https://devcenter.bitrise.io/en/getting-started/getting-started-with-android-apps.html) for signing and deployment options.
+      - [Set up code signing with *Android Sign* Step](https://devcenter.bitrise.io/en/code-signing/android-code-signing/android-code-signing-using-the-android-sign-step.html).
+    steps:
+      - activate-ssh-key@4: {}
+      - git-clone@7: {}
+      - script@1:
+          inputs:
+            - content: |-
+                #!/usr/bin/env bash
+                # fail if any commands fails
+                set -e
+                # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+                set -o pipefail
+                # debug log
+                set -x
+                
+                echo "pwd before $BITRISE_SOURCE_DIR"
+                pwd
+                echo "BITRISE SOURCE DIR"
+                
+                echo $BITRISE_SOURCE_DIR
+                
+                cd $BITRISE_SOURCE_DIR
+                
+                ls
+                
+                echo "pwd of $BITRISE_SOURCE_DIR"
+                pwd
+      - cache-pull@2: {}
+      
+meta:
+  bitrise.io:
+    stack: linux-docker-android-20.04
+    machine_type_id: standard
+app:
+  envs:
+    - opts:
+        is_expand: false
+      PROJECT_LOCATION: .
+    - opts:
+        is_expand: false
+      MODULE: app
+    - opts:
+        is_expand: false
+      VARIANT: debug
+    - opts:
+        is_expand: false
+      _JAVA_OPTIONS: -Xms1024m -Xmx2048m
+    - opts:
+        is_expand: false
+      GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m -XX:+HeapDumpOnOutOfMemoryError"
