@@ -14,15 +14,6 @@ workflows:
       - activate-ssh-key@4: {}
       - git-clone@7: {}
       - cache-pull@2: {}
-      - install-missing-android-tools@3:
-          inputs:
-            - gradlew_path: "$PROJECT_LOCATION/gradlew"
-      - android-build@1:
-          inputs:
-            - project_location: "$PROJECT_LOCATION"
-            - module: "$MODULE"
-            - variant: "$VARIANT"
-            - cache_level: none
       - script:
           title: Print project location and APK output directory
           inputs:
@@ -57,6 +48,4 @@ app:
 
 trigger_map:
   - push_branch: main
-    workflow: Maestro-Test-Android
-  - push_branch: '*'
     workflow: Maestro-Test-Android
