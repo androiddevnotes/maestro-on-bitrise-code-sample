@@ -23,6 +23,8 @@ workflows:
                 # debug log
                 set -x
                 
+                echo "INSIDE scripts/bitrise/bitrise.yml"
+                
                 echo "pwd before $BITRISE_SOURCE_DIR"
                 pwd
                 echo "BITRISE SOURCE DIR"
@@ -36,7 +38,7 @@ workflows:
                 echo "pwd of $BITRISE_SOURCE_DIR"
                 pwd
       - cache-pull@2: {}
-      
+
 meta:
   bitrise.io:
     stack: linux-docker-android-20.04
