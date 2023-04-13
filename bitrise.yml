@@ -1,4 +1,5 @@
-format_version: "11"
+---
+format_version: '11'
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: android
 workflows:
@@ -12,33 +13,64 @@ workflows:
     steps:
       - activate-ssh-key@4: {}
       - git-clone@7: {}
-      - script@1:
+      - cache-pull@2: {}
+      - install-missing-android-tools@3:
+          inputs:
+            - gradlew_path: "$PROJECT_LOCATION/gradlew"
+      - android-build@1:
+          inputs:
+            - project_location: "$PROJECT_LOCATION"
+            - module: "$MODULE"
+            - variant: "$VARIANT"
+            - cache_level: none
+      - script:
+          title: Print project location and APK output directory
+          inputs:
+            - content: |
+                #!/bin/bash
+                echo "Project location: $PROJECT_LOCATION"
+                echo "APK output directory: $PROJECT_LOCATION/$MODULE/build/outputs/apk/$VARIANT/"
+      - avd-manager@1: {}
+      - wait-for-android-emulator@1: {}
+      - script:
+          title: Install Maestro and run e2e tests
           inputs:
             - content: |-
-                #!/usr/bin/env bash
-                # fail if any commands fails
-                set -e
-                # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
-                set -o pipefail
-                # debug log
-                set -x
+                #!/bin/sh
                 
-                echo "INSIDE bitrise.yml"
+                set -ex
                 
-                echo "pwd before $BITRISE_SOURCE_DIR"
-                pwd
-                echo "BITRISE SOURCE DIR"
+                # Maestro version
+                if [[ -z "$maestro_cli_version" ]]; then
+                    echo "If you want to install a specific version of Maestro CLI, please set the environment variable maestro_cli_version to the version you want to install."
+                else
+                    echo "Installing Maestro CLI version $maestro_cli_version"
+                    export MAESTRO_VERSION=$maestro_cli_version;
+                fi
                 
-                echo $BITRISE_SOURCE_DIR
+                # Install maestro CLI
+                echo "Installing Maestro CLI"
+                curl -Ls "https://get.maestro.mobile.dev" | bash
+                export PATH="$PATH":"$HOME/.maestro/bin"
+                echo "MAESTRO INSTALLED - Check Version"
+                maestro -v
                 
-                cd $BITRISE_SOURCE_DIR
+                
+                $ANDROID_HOME/platform-tools/adb install "$BITRISE_APK_PATH"
+                
+                cd $PROJECT_LOCATION
                 
                 ls
                 
-                echo "pwd of $BITRISE_SOURCE_DIR"
                 pwd
-      - cache-pull@2: {}
-
+                
+                
+                echo "Running tests with Maestro"
+                maestro test .maestro/dummy.yaml
+      - sign-apk@1:
+          run_if: '{{getenv "BITRISEIO_ANDROID_KEYSTORE_URL" | ne ""}}'
+      - cache-push@2: {}
+      - deploy-to-bitrise-io@2: {}
 meta:
   bitrise.io:
     stack: linux-docker-android-20.04
@@ -47,7 +79,7 @@ app:
   envs:
     - opts:
         is_expand: false
-      PROJECT_LOCATION: .
+      PROJECT_LOCATION: "."
     - opts:
         is_expand: false
       MODULE: app
@@ -56,7 +88,7 @@ app:
       VARIANT: debug
     - opts:
         is_expand: false
-      _JAVA_OPTIONS: -Xms1024m -Xmx2048m
+      _JAVA_OPTIONS: "-Xms1024m -Xmx2048m"
     - opts:
         is_expand: false
       GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m -XX:+HeapDumpOnOutOfMemoryError"
